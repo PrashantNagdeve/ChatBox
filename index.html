@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+  <body>
+     <div class="chat">
+       <input type="text" class="chat-name" placeholder="Enter your name">
+       <div class="chat-messages">
+
+       
+
+
+       </div>
+       <textarea  class="chat-textarea" placeholder="Type your message"></textarea>
+       <div class="chat-status">Status:<span>Idle</span></div>
+     </div>
+
+   <script src="http://localhost:8080/socket.io/socket.io.js"></script>
+   <script >
+       
+       (function(){
+           var getNode=function(s){
+             return document.querySelector(s);
+           },
+           //getting required nodes
+           status=getNode('.chat-status')
+           textArea=getNode('.chat-textarea');
+           chatName=getNode('.chat-name');
+
+           messages=getNode('.chat-messages');
+
+
+           statusDefault=status.textContent;
+           
+           //building a setStatus method to set a status
+           setStatus=function(s){
+              status.textContent=s;
+          //interval for status is 3000 ms
+              if(s!== statusDefault)
+              {
+                var delay=setTimeout(()=>{
+                  setStatus(statusDefault);
+                  clearInterval(delay);
+                },3000);
+              }
+           };
+          
+           
+           try{
+            var socket = io.connect('http://localhost:8080');
+           }
+           catch(e)
+          {
+            //alert user
+          }
+          if(socket!=undefined)
+          {
+            
+            console.log("Works!");
+
+            //listen for output
+            socket.on('output',(data)=>{
+           // console.log("Exp :" +Object.keys(data).length);
+          
+              //if data is there then n then we show the messsages
+              //normal data.length does not work 
+              //Hence we use the below Object.keys(data).length
+              if(Object.keys(data).length>0)
+              {
+                //console.log("Inside if");
+                for(var i=0;i<data.length;i=i+1)
+                {
+                 
+                  //creating a divto show old messages
+                  var message=document.createElement('div');
+                  message.setAttribute('class','chat-message');
+                  message.textContent=data[i].name+': '+data[i].message;
+                  //messages is declared at the top of this function
+                  //on line 32
+                  //displaying messages
+                 
+                  messages.appendChild(message);
+                  messages.insertBefore(message,messages.firstChild);
+                }
+              }
+              
+            })
+        
+          //listening for status
+           socket.on('status',(data)=>{
+             setStatus((typeof data==='object')? data.message:data);
+              //clear the data when enter is pressed
+             if(data.clear===true){
+               textArea.value='';
+             }
+           });
+
+
+           //listen for enter
+           //we will render our message after enter is pressed
+           textArea.addEventListener('keydown',function(event){
+            //self refers to textArea  
+            var self=this;
+               name=chatName.value;
+               
+               //the below line gives what we press in keyboard
+               //console.log(event);
+
+
+               if(event.which===13 && event.shiftKey==false)
+               {
+                 
+                  console.log("Sending data");
+                  socket.emit('input',{
+                    name:name,
+                    message:self.value
+                  });
+
+               }
+              
+           });
+          }
+       })();
+   </script>
+  </body>
+</html>
